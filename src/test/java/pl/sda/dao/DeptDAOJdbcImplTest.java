@@ -6,7 +6,6 @@ import pl.sda.DbConfiguration;
 import pl.sda.domain.Department;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.sql.SQLException;
 
 import static org.junit.Assert.*;
@@ -20,9 +19,9 @@ public class DeptDAOJdbcImplTest {
 
     @Before
     public void init() throws IOException, ClassNotFoundException, SQLException {
-        JdbcTemplateConnectionManager jdbcConnectionManager = new JdbcTemplateConnectionManager(DbConfiguration.loadConfiguration());
-        deptDAO =  new DeptDAOJdbcTemplateImpl(jdbcConnectionManager);
-        TestUtil.cleanUpDatabase(jdbcConnectionManager);
+        DataSourceFactory dataSourceFactory = new DataSourceFactory(DbConfiguration.loadConfiguration());
+        deptDAO =  new DeptDAOJdbcTemplateImpl(dataSourceFactory);
+        TestUtil.cleanUpDatabase(dataSourceFactory);
     }
 
     @Test

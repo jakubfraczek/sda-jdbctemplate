@@ -23,9 +23,9 @@ public class EmpDAOJdbcImplTest {
 
     @Before
     public void init() throws IOException, ClassNotFoundException, SQLException {
-        JdbcTemplateConnectionManager jdbcConnectionManager = new JdbcTemplateConnectionManager(DbConfiguration.loadConfiguration());
-        empDAO =  new EmpDAOJdbcTemplateImpl(jdbcConnectionManager);
-        TestUtil.cleanUpDatabase(jdbcConnectionManager);
+        DataSourceFactory dataSourceFactory = new DataSourceFactory(DbConfiguration.loadConfiguration());
+        empDAO =  new EmpDAOJdbcTemplateImpl(dataSourceFactory);
+        TestUtil.cleanUpDatabase(dataSourceFactory);
     }
 
     @Test
@@ -33,14 +33,21 @@ public class EmpDAOJdbcImplTest {
         Employee employee = empDAO.findById(7369);
 
         assertNotNull(employee);
-        assertEquals(7369, employee.getDeptno());
+        assertEquals(20, employee.getDeptno());
         assertEquals("SMITH", employee.getEname());
         assertEquals("CLERK", employee.getJob());
         assertEquals(sdf.parse("1993-06-13"), employee.getHiredate());
-        assertEquals(BigDecimal.valueOf(800), employee.getSalary());
-        assertEquals(BigDecimal.valueOf(0.0), employee.getCommision());
-        assertEquals(20, employee.getDeptno());
+        assertTrue(BigDecimal.valueOf(800.00).compareTo(employee.getSalary())==0);
+        assertTrue(BigDecimal.valueOf(0.00).compareTo(employee.getCommision())==0);
 
+    }
+
+    @Test
+    public void findAll() throws Exception {
+        List<Employee> employees = empDAO.findByAll();
+
+        assertNotNull(employees);
+        assertTrue(employees.size() == 14);
     }
 
     @Test
@@ -52,12 +59,12 @@ public class EmpDAOJdbcImplTest {
         Employee employeeFromDB = empDAO.findById(9000);
 
         assertNotNull(employeeFromDB);
-        assertEquals(employeeFromDB.getEmpno(), newEmployee.getDeptno());
+        assertEquals(employeeFromDB.getEmpno(), newEmployee.getEmpno());
         assertEquals(employeeFromDB.getEname(), newEmployee.getEname());
         assertEquals(employeeFromDB.getJob(), newEmployee.getJob());
         assertEquals(employeeFromDB.getHiredate(), newEmployee.getHiredate());
-        assertEquals(employeeFromDB.getSalary(), newEmployee.getSalary());
-        assertEquals(employeeFromDB.getCommision(), newEmployee.getCommision());
+        assertTrue(employeeFromDB.getSalary().compareTo(newEmployee.getSalary()) ==0);
+        assertTrue(employeeFromDB.getCommision().compareTo(newEmployee.getCommision()) ==0);
         assertEquals(employeeFromDB.getDeptno(), newEmployee.getDeptno());
     }
 
@@ -71,13 +78,12 @@ public class EmpDAOJdbcImplTest {
         employee = empDAO.findById(7369);
 
         assertNotNull(employee);
-        assertEquals(7369, employee.getDeptno());
+        assertEquals(20, employee.getDeptno());
         assertEquals("SMITH", employee.getEname());
         assertEquals("SUPERCLERK", employee.getJob());
         assertEquals(sdf.parse("1993-06-13"), employee.getHiredate());
-        assertEquals(BigDecimal.valueOf(800), employee.getSalary());
-        assertEquals(BigDecimal.valueOf(0.0), employee.getCommision());
-        assertEquals(20, employee.getDeptno());
+        assertTrue(BigDecimal.valueOf(800).compareTo(employee.getSalary()) == 0);
+        assertTrue(BigDecimal.valueOf(800.00).compareTo(employee.getSalary()) == 0);
 
     }
 
@@ -91,63 +97,4 @@ public class EmpDAOJdbcImplTest {
         employee = empDAO.findById(7369);
         assertNull(employee);
     }
-
-    @Test
-    public void createMultipleEmployeesAllOk() throws Exception {
-        Employee newEmployee1 = new Employee(9000, "JKOWALSKI", "Manager", 7839, sdf.parse("2017-01-01"), BigDecimal.valueOf(10000), BigDecimal.valueOf(10.0), 20);
-        Employee newEmployee2 = new Employee(9001, "JNOWAK", "Manager", 7839, sdf.parse("2017-01-01"), BigDecimal.valueOf(10001), BigDecimal.valueOf(9.0), 30);
-
-        List<Employee> employeeList = new ArrayList<>();
-        employeeList.add(newEmployee1);
-        employeeList.add(newEmployee2);
-
-        empDAO.create(employeeList);
-
-        Employee employeeFromDB1 = empDAO.findById(9000);
-        Employee employeeFromDB2 = empDAO.findById(9001);
-
-        assertNotNull(employeeFromDB1);
-        assertEquals(employeeFromDB1.getEmpno(), newEmployee1.getDeptno());
-        assertEquals(employeeFromDB1.getEname(), newEmployee1.getEname());
-        assertEquals(employeeFromDB1.getJob(), newEmployee1.getJob());
-        assertEquals(employeeFromDB1.getHiredate(), newEmployee1.getHiredate());
-        assertEquals(employeeFromDB1.getSalary(), newEmployee1.getSalary());
-        assertEquals(employeeFromDB1.getCommision(), newEmployee1.getCommision());
-        assertEquals(employeeFromDB1.getDeptno(), newEmployee1.getDeptno());
-
-        assertNotNull(employeeFromDB2);
-        assertEquals(employeeFromDB2.getEmpno(), newEmployee2.getDeptno());
-        assertEquals(employeeFromDB2.getEname(), newEmployee2.getEname());
-        assertEquals(employeeFromDB2.getJob(), newEmployee2.getJob());
-        assertEquals(employeeFromDB2.getHiredate(), newEmployee2.getHiredate());
-        assertEquals(employeeFromDB2.getSalary(), newEmployee2.getSalary());
-        assertEquals(employeeFromDB2.getCommision(), newEmployee2.getCommision());
-        assertEquals(employeeFromDB2.getDeptno(), newEmployee2.getDeptno());
-    }
-
-    @Test(expected=SQLException.class)
-    public void createMultipleEmployeesSecondRowFail() throws Exception {
-        Employee newEmployee1 = new Employee(9000, "JKOWALSKI", "Manager", 7839, sdf.parse("2017-01-01"), BigDecimal.valueOf(10000), BigDecimal.valueOf(10.0), 20);
-        Employee newEmployee2 = new Employee(9000, "JNOWAK", "Manager", 7839, sdf.parse("2017-01-01"), BigDecimal.valueOf(10001), BigDecimal.valueOf(9.0), 30);
-
-        List<Employee> employeeList = new ArrayList<>();
-        employeeList.add(newEmployee1);
-        employeeList.add(newEmployee2);
-
-        try {
-            empDAO.create(employeeList);
-        }catch(Exception ex){
-            Employee employeeFromDB = empDAO.findById(9000);
-            assertNull(employeeFromDB);
-            throw ex;
-        }
-    }
-
-    @Test
-    public void getTotalSalaryByDept() throws Exception {
-        BigDecimal salaryFor10Dept = empDAO.getTotalSalaryByDept(10);
-
-        assertEquals(8750, salaryFor10Dept);
-    }
-
 }

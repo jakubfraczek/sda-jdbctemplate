@@ -3,7 +3,10 @@ package pl.sda.dao;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import pl.sda.domain.Department;
+
+import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,14 +16,13 @@ import java.util.Map;
  */
 public class DeptDAOJdbcTemplateImpl implements DeptDAO{
     private static String QUERY_BY_ID  = "SELECT deptno, dname, location FROM Dept WHERE deptno = :deptno";
-    private static String INSERT_STMT = "INSERT INTO Dept(deptno, dname, location) VALUES(:deptno,:dname,:location)";
     private static String UPDATE_STMT= "UPDATE Dept set dname = :dname, location = :location WHERE deptno = :deptno";
     private static String DELETE_STMT= "DELETE FROM Dept WHERE deptno = :deptno";
 
-    private final JdbcTemplateConnectionManager jdbcTemplateConnectionManager;
+    private final DataSourceFactory dataSourceFactory;
 
-    public DeptDAOJdbcTemplateImpl(JdbcTemplateConnectionManager jdbcTemplateConnectionManager) {
-        this.jdbcTemplateConnectionManager = jdbcTemplateConnectionManager;
+    public DeptDAOJdbcTemplateImpl(DataSourceFactory dataSourceFactory) {
+        this.dataSourceFactory = dataSourceFactory;
     }
 
     private static RowMapper<Department> rowMapper = (rs, rowNum) -> {
@@ -32,7 +34,8 @@ public class DeptDAOJdbcTemplateImpl implements DeptDAO{
 
     @Override
     public Department findById(int id) throws SQLException {
-        NamedParameterJdbcTemplate jdbcTemplate = jdbcTemplateConnectionManager.getNamedParameterJdbcTemplate();
+        DataSource ds = dataSourceFactory.getDataSource();
+        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
 
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("deptno", id);
@@ -46,20 +49,23 @@ public class DeptDAOJdbcTemplateImpl implements DeptDAO{
 
     @Override
     public void create(Department department) throws SQLException {
-        NamedParameterJdbcTemplate jdbcTemplate = jdbcTemplateConnectionManager.getNamedParameterJdbcTemplate();
+        DataSource ds = dataSourceFactory.getDataSource();
+        SimpleJdbcInsert simpleJdbcInsert = new SimpleJdbcInsert(ds)
+                .withTableName("Dept")
+                 .usingColumns("deptno", "dname", "location");
 
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("deptno", department.getDeptno());
         parameters.put("dname", department.getDname());
         parameters.put("location", department.getLocation());
 
-        int numberOfAffectedRows = jdbcTemplate.update(INSERT_STMT, parameters);
-        System.out.println("DeptDAO.create() number of affected rows: " + numberOfAffectedRows);
+        simpleJdbcInsert.execute(parameters);
     }
 
     @Override
     public void update(Department department) throws SQLException {
-        NamedParameterJdbcTemplate jdbcTemplate = jdbcTemplateConnectionManager.getNamedParameterJdbcTemplate();
+        DataSource ds = dataSourceFactory.getDataSource();
+        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
 
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("deptno", department.getDeptno());
@@ -72,7 +78,8 @@ public class DeptDAOJdbcTemplateImpl implements DeptDAO{
 
     @Override
     public void delete(int id) throws SQLException {
-        NamedParameterJdbcTemplate jdbcTemplate = jdbcTemplateConnectionManager.getNamedParameterJdbcTemplate();
+        DataSource ds = dataSourceFactory.getDataSource();
+        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
 
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("deptno", id);
