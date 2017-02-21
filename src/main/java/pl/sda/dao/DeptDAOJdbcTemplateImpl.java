@@ -4,6 +4,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import pl.sda.domain.Department;
 
 import javax.sql.DataSource;
@@ -65,15 +67,20 @@ public class DeptDAOJdbcTemplateImpl implements DeptDAO{
     @Override
     public void update(Department department) throws SQLException {
         DataSource ds = dataSourceFactory.getDataSource();
-        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
+        TransactionTemplate transactionTemplate = new TransactionTemplate(new DataSourceTransactionManager(ds));
+        transactionTemplate.execute(status -> {
+            NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
 
-        Map<String, Object> parameters = new HashMap<String, Object>();
-        parameters.put("deptno", department.getDeptno());
-        parameters.put("dname", department.getDname());
-        parameters.put("location", department.getLocation());
+            Map<String, Object> parameters = new HashMap<String, Object>();
+            parameters.put("deptno", department.getDeptno());
+            parameters.put("dname", department.getDname());
+            parameters.put("location", department.getLocation());
 
-        int numberOfAffectedRows = jdbcTemplate.update(UPDATE_STMT, parameters);
-        System.out.println("DeptDAO.update() number of affected rows: " + numberOfAffectedRows);
+            int numberOfAffectedRows = jdbcTemplate.update(UPDATE_STMT, parameters);
+            System.out.println("DeptDAO.update() number of affected rows: " + numberOfAffectedRows);
+
+            return null;
+        });
     }
 
     @Override
