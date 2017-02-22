@@ -1,28 +1,30 @@
 package pl.sda.dao;
 
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
-import pl.sda.domain.Department;
-import pl.sda.domain.Employee;
-
-import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.sql.DataSource;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import pl.sda.domain.Employee;
+
 /**
  * Created by pzawa on 02.02.2017.
  */
 public class EmpDAOJdbcTemplateImpl implements EmpDAO {
 	private static String QUERY_BY_ID = "SELECT empno, ename, job, manager, hiredate, salary, commision, deptno FROM emp WHERE empno = :empno";
-	private static String INSERT_STMT = "INSERT INTO emp(empno, ename, job, manager, hiredate, salary, commision, deptno) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-	private static String UPDATE_STMT = "UPDATE emp set ename = ?, job = ?, manager = ?, hiredate = ? , salary = ? , commision = ? , deptno = ?  WHERE empno = ?";
-	private static String DELETE_STMT = "DELETE FROM emp WHERE empno = ?";
-	private static String GET_TOTAL_SALARY_BY_DEPT = "{ ?= call sda.calculate_salary_by_dept(?)}";
+	private static String QUERY_BY_ALL = "SELECT * FROM emp";
+	private static String UPDATE_STMT = "UPDATE emp set ename = :ename, job = :job, manager = :manager, hiredate = :hiredate, salary = :salary, commision = :commision, deptno = :deptno WHERE empno = :empno";
+	private static String DELETE_STMT = "DELETE FROM emp WHERE empno = :empno";
 
 	private final DataSourceFactory dataSourceFactory;
 
@@ -43,9 +45,21 @@ public class EmpDAOJdbcTemplateImpl implements EmpDAO {
 
 	};
 
+	private Map<String, Object> employeeMapper(Employee employee) {
+		Map<String, Object> parameters = new HashMap<>();
+		parameters.put("empno", employee.getEmpno());
+		parameters.put("ename", employee.getEname());
+		parameters.put("job", employee.getJob());
+		parameters.put("manager", employee.getManager());
+		parameters.put("hiredate", employee.getHiredate());
+		parameters.put("salary", employee.getSalary());
+		parameters.put("commision", employee.getCommision());
+		parameters.put("deptno", employee.getDeptno());
+		return parameters;
+	}
+	
 	@Override
 	public Employee findById(int id) throws Exception {
-
 		DataSource ds = dataSourceFactory.getDataSource();
 		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
 
@@ -62,21 +76,68 @@ public class EmpDAOJdbcTemplateImpl implements EmpDAO {
 
 	@Override
 	public List<Employee> findByAll() throws Exception {
-		return null;
+		DataSource ds = dataSourceFactory.getDataSource();
+		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
+
+		try {
+			return jdbcTemplate.query(QUERY_BY_ALL, rowMapper);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
+
 	}
 
 	@Override
 	public void create(Employee employee) throws Exception {
-
+		DataSource ds = dataSourceFactory.getDataSource();
+		TransactionTemplate transactionTemplate = new TransactionTemplate(new DataSourceTransactionManager(ds));
+		
+		transactionTemplate.execute(satus ->{
+		SimpleJdbcInsert simpleJdbcInsert = new SimpleJdbcInsert(ds)
+				.withTableName("emp")
+				.usingColumns("empno", "ename", "job", "manager", "hiredate", "salary", "commision", "deptno");
+		
+		Map<String, Object> parameters = employeeMapper(employee);
+		
+		simpleJdbcInsert.execute(parameters);
+		
+		return null;
+		});
+		
 	}
+
 
 	@Override
 	public void update(Employee employee) throws Exception {
-
+		DataSource ds = dataSourceFactory.getDataSource();
+        TransactionTemplate transactionTemplate = new TransactionTemplate(new DataSourceTransactionManager(ds));
+		
+		transactionTemplate.execute(status -> {
+			NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
+			
+			Map<String, Object> parameters = employeeMapper(employee);
+			
+			jdbcTemplate.update(UPDATE_STMT, parameters);
+			
+			return null;
+		});
+		
 	}
 
 	@Override
 	public void delete(int id) throws Exception {
-
+		DataSource ds = dataSourceFactory.getDataSource();
+        TransactionTemplate transactionTemplate = new TransactionTemplate(new DataSourceTransactionManager(ds));
+		
+        transactionTemplate.execute(status -> {
+        	NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
+    		
+        	Map<String, Object> parameters = new HashMap<String, Object>();
+    		parameters.put("empno", id);
+    		
+    		jdbcTemplate.update(DELETE_STMT, parameters);
+        	
+        	return null;
+        });
 	}
 }

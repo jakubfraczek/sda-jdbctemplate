@@ -1,18 +1,21 @@
 package pl.sda.dao;
 
-import org.junit.Before;
-import org.junit.Test;
-import pl.sda.DbConfiguration;
-import pl.sda.domain.Employee;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import org.junit.Before;
+import org.junit.Test;
+
+import pl.sda.DbConfiguration;
+import pl.sda.domain.Employee;
 
 /**
  * Created by pzawa on 02.02.2017.
